@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Weekly Shop</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Weekly Shop">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F3F5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111613" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+/* Layout: one column; totals "receipt" up top, then the list grouped by meal. Numbers in mono. */
+:root{
+  --bg:#F3F5F1; --surface:#FFFFFF; --ink:#18201B; --muted:#5D6A62; --line:#D9DFD8;
+  --accent:#1F6B4A; --accent-soft:#E2EFE7; --tesco:#1B4FA0; --aldi:#C2410C; --warn:#9A3412; --good:#166534;
+  --display:ui-rounded,-apple-system,system-ui,sans-serif;
+  --body:-apple-system,system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#1A211C; --ink:#E7ECE8; --muted:#9AA79F; --line:#2C3630;
+  --accent:#5FBF8E; --accent-soft:#1E3328; --tesco:#7FA8EC; --aldi:#F59E6B; --warn:#FDBA74; --good:#86EFAC; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#1A211C; --ink:#E7ECE8; --muted:#9AA79F; --line:#2C3630;
+  --accent:#5FBF8E; --accent-soft:#1E3328; --tesco:#7FA8EC; --aldi:#F59E6B; --warn:#FDBA74; --good:#86EFAC; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:calc(20px + env(safe-area-inset-top,0px));padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));margin:0;-webkit-text-size-adjust:100%}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:28px}
+h1{font:700 clamp(28px,5vw,40px)/1.1 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:700 13px/1 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.lede{color:var(--muted);max-width:62ch;margin:8px 0 0}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* receipt */
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:grid;gap:16px}
+.totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px}
+.tot{display:grid;gap:2px}
+.tot .lbl{font-size:13px;color:var(--muted)}
+.tot .val{font:500 26px/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.tot.best .val{color:var(--accent)}
+.tot .sub{font:12px var(--mono);color:var(--muted)}
+.budget{display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-top:1px dashed var(--line);padding-top:14px}
+.budget label{font-weight:600}
+.status{font:500 14px var(--mono);padding:4px 10px;border-radius:999px}
+.status.ok{background:var(--accent-soft);color:var(--good)}
+.status.over{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+input[type=number]{font:16px var(--mono);font-variant-numeric:tabular-nums;width:76px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink)}
+input[type=number]:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* list */
+.group{display:grid;gap:0}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 70px 96px 96px 74px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row.head{font:600 12px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:0}
+.item b{font-weight:600}
+.item small{display:block;color:var(--muted);font-size:12.5px;line-height:1.35}
+.price{display:grid;gap:2px}
+.tag{font:11px var(--mono);color:var(--muted)}
+.tag.v{color:var(--good)}
+.cheap{font:500 12px var(--mono);text-align:right}
+.cheap .s{display:block;font-size:11px}
+.s.t{color:var(--tesco)} .s.a{color:var(--aldi)}
+.colT{color:var(--tesco)} .colA{color:var(--aldi)}
+.na{font:13px var(--mono);color:var(--muted)}
+@media (max-width:620px){
+  .row{grid-template-columns:1fr 1fr 1fr;row-gap:8px}
+  .row .item{grid-column:1/-1}
+  .row.head{display:none}
+  .row .cheap{grid-column:1/-1;text-align:left}
+  .price::before,.qtycell::before{content:attr(data-l);font:11px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .qtycell{display:grid;gap:2px}
+}
+.item{display:flex;gap:10px;align-items:flex-start}
+.item input[type=checkbox]{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent);flex:none;cursor:pointer}
+.row.done .item b{text-decoration:line-through;color:var(--muted)}
+.row.done{opacity:.7}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.notes{display:grid;gap:10px;color:var(--muted);font-size:14px;max-width:68ch}
+.notes p{margin:0}
+.btn{font:500 13px var(--body);background:transparent;border:1px solid var(--line);color:var(--ink);padding:6px 12px;border-radius:4px;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.tot .val{transition:color .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Weekly Shop Planner</h1>
+    <p class="lede">Your current meals, turned into one week of shopping for one person. Change any quantity or price to match your receipt and the totals update. Works offline. Edits and ticks are saved on this phone.</p>
+  </header>
+
+  <section class="receipt" aria-label="Weekly totals">
+    <div class="totals">
+      <div class="tot"><span class="lbl">All at Tesco</span><span class="val colT" id="tTesco">€0.00</span><span class="sub" id="mTesco"></span></div>
+      <div class="tot"><span class="lbl">All at Aldi*</span><span class="val colA" id="tAldi">€0.00</span><span class="sub" id="mAldi"></span></div>
+      <div class="tot best"><span class="lbl">Cheapest split</span><span class="val" id="tBest">€0.00</span><span class="sub" id="mBest"></span></div>
+    </div>
+    <div class="budget">
+      <label for="budget">Weekly food budget €</label>
+      <input type="number" id="budget" min="0" step="1" value="60">
+      <span class="status" id="status"></span>
+    </div>
+    <p class="tag" style="margin:0">* Items Aldi doesn't stock are counted at the Tesco price. Monthly = weekly × 4.33.</p>
+  </section>
+
+  <div class="bar"><span class="tag" id="progress"></span><button class="btn" id="clearTicks" type="button">Clear ticks for next shop</button></div>
+  <section id="list"></section>
+
+  <section class="notes">
+    <h2>How to read this</h2>
+    <p><span class="tag v">● verified</span> prices were checked online in October 2026. <span class="tag">○ est.</span> prices are estimates, so replace them with the shelf price on your first shop. After one week of real receipts, the totals will be accurate.</p>
+    <p>Quantities assume 2 eggs, a glass of protein milk, one tin of sardines and one chicken portion a day. Staples like butter, olive oil and rice last longer than a week, so only that week's share is counted.</p>
+    <p>Aldi doesn't sell groceries online in Ireland, so most Aldi prices can only be checked in store.</p>
+    <button class="btn" id="reset" type="button">Reset to starting prices</button>
+  </section>
+</div>
+
+<script>
+const ITEMS=[
+ {g:"Breakfast",id:"milk",n:"Protein milk 1% (1L)",note:"Tesco's own: just milk + milk protein",q:4,t:1.49,tv:1,a:1.49,av:1},
+ {g:"Breakfast",id:"granola",n:"Granola (500g)",note:"Check the label for added sugar",q:1,t:3.00,a:2.29},
+ {g:"Snacks",id:"eggs",n:"Free range eggs (15 pack)",note:"14 eggs a week",q:1,t:4.29,a:3.89},
+ {g:"Snacks",id:"apples",n:"Apples (6 pack)",q:1,t:2.19,a:1.69},
+ {g:"Snacks",id:"bananas",n:"Bananas (6)",q:1,t:1.35,a:1.15},
+ {g:"Snacks",id:"grapes",n:"Grapes (500g)",q:1,t:2.49,a:1.99},
+ {g:"Lunch",id:"bread",n:"Staffords Fermented Turnover (500g)",note:"Flour, yeast, water, salt. Slice and freeze",q:2,t:3.29,tv:1,a:null},
+ {g:"Lunch",id:"sardines",n:"Sardines in olive oil (tin)",q:7,t:1.29,a:0.89},
+ {g:"Lunch",id:"salad",n:"Salad leaves (bag)",q:2,t:1.29,a:0.89},
+ {g:"Lunch",id:"tomatoes",n:"Tomatoes (6 pack)",q:1,t:1.49,a:1.19},
+ {g:"Lunch",id:"butter",n:"Irish butter (454g)",note:"Lasts about 2 weeks",q:0.5,t:3.39,a:2.99},
+ {g:"Lunch",id:"oil",n:"Extra virgin olive oil (500ml)",note:"Lasts about 4 weeks",q:0.25,t:6.99,a:5.49},
+ {g:"Lunch",id:"caesar",n:"Ballymaloe Caesar (200ml)",note:"€3.20 at Dunnes; check Tesco stocks it",q:0.5,t:3.20,a:null},
+ {g:"Dinner",id:"chicken",n:"Irish chicken breast (~1kg)",note:"About 140g a night",q:1,t:10.99,a:9.49},
+ {g:"Dinner",id:"rice",n:"Basmati rice (1kg)",note:"Lasts about 2 weeks",q:0.5,t:2.29,a:1.59},
+ {g:"Dinner",id:"veg",n:"Frozen mixed veg (1kg)",note:"Adds veg to dinner",q:1,t:1.99,a:1.29},
+];
+const KEY="weekly-shop-v1";
+let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+let ticks={};try{ticks=JSON.parse(localStorage.getItem(KEY+"-ticks")||"{}")}catch(e){}
+function progress(){const n=ITEMS.filter(i=>ticks[i.id]).length;document.getElementById("progress").textContent=`${n} of ${ITEMS.length} items in the basket`}
+const eur=v=>"€"+v.toFixed(2);
+function val(id,f,d){const s=saved[id];return s&&s[f]!=null?s[f]:d}
+
+function render(){
+  const list=document.getElementById("list");list.innerHTML="";
+  const groups=[...new Set(ITEMS.map(i=>i.g))];
+  groups.forEach(g=>{
+    const sec=document.createElement("div");sec.className="group";
+    sec.innerHTML=`<h2>${g}</h2><div class="row head"><span>Item</span><span>Qty/wk</span><span class="colT">Tesco €</span><span class="colA">Aldi €</span><span style="text-align:right">Buy at</span></div>`;
+    ITEMS.filter(i=>i.g===g).forEach(i=>{
+      const r=document.createElement("div");r.className="row";
+      const a=val(i.id,"a",i.a);
+      if(ticks[i.id])r.classList.add("done");
+      r.innerHTML=`<div class="item"><input type="checkbox" id="ck-${i.id}" ${ticks[i.id]?"checked":""} aria-label="Got ${i.n}"><label for="ck-${i.id}"><b>${i.n}</b>${i.note?`<small>${i.note}</small>`:""}</label></div>
+        <div class="qtycell" data-l="Qty/wk"><input type="number" id="q-${i.id}" min="0" step="0.25" value="${val(i.id,"q",i.q)}" aria-label="${i.n} quantity per week"></div>
+        <div class="price" data-l="Tesco €"><input type="number" id="t-${i.id}" min="0" step="0.01" value="${val(i.id,"t",i.t).toFixed(2)}" aria-label="${i.n} Tesco price"><span class="tag ${i.tv&&!saved[i.id]?.t?"v":""}">${i.tv&&saved[i.id]?.t==null?"● verified":"○ est."}</span></div>
+        <div class="price" data-l="Aldi €">${a==null&&i.a==null?`<span class="na">not stocked</span>`:`<input type="number" id="a-${i.id}" min="0" step="0.01" value="${(a??0).toFixed(2)}" aria-label="${i.n} Aldi price"><span class="tag ${i.av&&saved[i.id]?.a==null?"v":""}">${i.av&&saved[i.id]?.a==null?"● price match":"○ est."}</span>`}</div>
+        <div class="cheap" id="c-${i.id}"></div>`;
+      sec.appendChild(r);
+    });
+    list.appendChild(sec);
+  });
+  list.querySelectorAll("input[type=number]").forEach(inp=>inp.addEventListener("input",onEdit));
+  list.querySelectorAll("input[type=checkbox]").forEach(cb=>cb.addEventListener("change",e=>{
+    const id=e.target.id.slice(3);ticks[id]=e.target.checked;
+    e.target.closest(".row").classList.toggle("done",e.target.checked);
+    try{localStorage.setItem(KEY+"-ticks",JSON.stringify(ticks))}catch(err){}
+    progress();
+  }));
+  progress();
+  calc();
+}
+function onEdit(e){
+  const [f,...rest]=e.target.id.split("-");const id=rest.join("-");
+  const v=parseFloat(e.target.value);if(isNaN(v))return;
+  saved[id]=saved[id]||{};saved[id][f]=v;
+  try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(err){}
+  const tag=e.target.nextElementSibling;if(tag&&tag.classList.contains("tag")){tag.textContent="✎ your price";tag.className="tag"}
+  calc();
+}
+function calc(){
+  let T=0,A=0,B=0;
+  ITEMS.forEach(i=>{
+    const q=val(i.id,"q",i.q),t=val(i.id,"t",i.t),a=i.a==null?null:val(i.id,"a",i.a);
+    const ct=q*t,ca=a==null?ct:q*a;
+    T+=ct;A+=ca;B+=Math.min(ct,ca);
+    const c=document.getElementById("c-"+i.id);
+    if(a==null)c.innerHTML=`${eur(ct)}<span class="s t">Tesco</span>`;
+    else if(Math.abs(ct-ca)<0.005)c.innerHTML=`${eur(ct)}<span class="s">same</span>`;
+    else c.innerHTML=ca<ct?`${eur(ca)}<span class="s a">Aldi, save ${eur(ct-ca)}</span>`:`${eur(ct)}<span class="s t">Tesco, save ${eur(ca-ct)}</span>`;
+  });
+  const m=4.33;
+  tTesco.textContent=eur(T);mTesco.textContent=eur(T*m)+" / month";
+  tAldi.textContent=eur(A);mAldi.textContent=eur(A*m)+" / month";
+  tBest.textContent=eur(B);mBest.textContent=eur(B*m)+" / month";
+  const b=parseFloat(budget.value)||0,st=document.getElementById("status");
+  if(B<=b){st.className="status ok";st.textContent=`${eur(b-B)} under budget`}
+  else{st.className="status over";st.textContent=`${eur(B-b)} over budget`}
+}
+try{const b=localStorage.getItem(KEY+"-budget");if(b)budget.value=b}catch(e){}
+budget.addEventListener("input",()=>{try{localStorage.setItem(KEY+"-budget",budget.value)}catch(e){}calc()});
+clearTicks.addEventListener("click",()=>{ticks={};try{localStorage.removeItem(KEY+"-ticks")}catch(e){}render()});
+reset.addEventListener("click",()=>{saved={};try{localStorage.removeItem(KEY)}catch(e){}render()});
+render();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+</script>
+</body>
+</html>
